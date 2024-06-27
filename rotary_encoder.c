@@ -1,62 +1,47 @@
 /*
-    Project name : Rotary Encoder
-    Modified Date: 12-06-2024
+    Project name : Arduino Nano Rotary Encoder
+    Modified Date: 27-06-2024
     Code by : Projectslearner
     Website : https://projectslearner.com/learn/arduino-nano-rotary-encoder
 */
 
-// Rotary Encoder Variables
-#define CLK 2  // Rotary encoder CLK pin connected to D2
-#define DT 3   // Rotary encoder DT pin connected to D3
+// Define the pins connected to the rotary encoder
+const int encoderPinCLK = 2;  // CLK pin
+const int encoderPinDT = 3;   // DT pin
+const int encoderPinSW = 4;   // SW pin
 
-volatile int lastEncoded = 0;
-volatile long encoderValue = 0;
-
-// Function prototypes
-void updateEncoder();
-void printDirection();
+volatile int encoderPos = 0;  // Current position of the encoder
+volatile boolean rotating = false; // Flag to indicate rotation
 
 void setup() {
-  // Initialize Serial Monitor
-  Serial.begin(9600);
+  pinMode(encoderPinCLK, INPUT_PULLUP); // CLK pin as input with internal pull-up resistor
+  pinMode(encoderPinDT, INPUT_PULLUP);  // DT pin as input with internal pull-up resistor
+  pinMode(encoderPinSW, INPUT_PULLUP);  // SW pin as input with internal pull-up resistor
 
-  // Set pins as input
-  pinMode(CLK, INPUT);
-  pinMode(DT, INPUT);
-
-  // Enable pullup resistors
-  digitalWrite(CLK, HIGH);
-  digitalWrite(DT, HIGH);
-
-  // Attach interrupts
-  attachInterrupt(digitalPinToInterrupt(CLK), updateEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(DT), updateEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(encoderPinCLK), handleEncoder, CHANGE); // Interrupt on CLK pin change
 }
 
 void loop() {
-  // Print the direction to Serial Monitor
-  printDirection();
+  // Main program loop
+  // You can add your main program logic here
 }
 
-// Interrupt service routine to update encoder value
-void updateEncoder() {
-  int MSB = digitalRead(CLK);
-  int LSB = digitalRead(DT);
-  int encoded = (MSB << 1) | LSB;
-  int sum = (lastEncoded << 2) | encoded;
-  if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) {
-    encoderValue++;
-  } else if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
-    encoderValue--;
-  }
-  lastEncoded = encoded;
-}
+void handleEncoder() {
+  // Read DT pin to determine direction
+  int DTstate = digitalRead(encoderPinDT);
 
-// Function to print rotation direction to Serial Monitor
-void printDirection() {
-  if (encoderValue > 0) {
-    Serial.println("Clockwise");
-  } else if (encoderValue < 0) {
-    Serial.println("Counter-Clockwise");
+  if (DTstate == HIGH) {
+    encoderPos++;
+  } else {
+    encoderPos--;
   }
+
+  rotating = true; // Set rotating flag
+
+  // Print encoder position to Serial Monitor
+  Serial.print("Encoder Position: ");
+  Serial.println(encoderPos);
+
+  // Debounce delay to avoid multiple interrupts for the same movement
+  delay(1);
 }
